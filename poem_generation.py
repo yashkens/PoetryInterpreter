@@ -1,61 +1,69 @@
+import numpy as np
 import tune_the_model as ttm
 from nltk.tokenize import sent_tokenize
-import numpy as np
-from tqdm import tqdm
-from variables import TOKEN, POEM_START_MODEL_ID, POEM_CONTINUE_MODEL_ID
-
-ttm.set_api_key(TOKEN)
-
-model = ttm.TuneTheModel.from_id(POEM_START_MODEL_ID)
-cont_model = ttm.TuneTheModel.from_id(POEM_CONTINUE_MODEL_ID)
 
 
-def generate_start():
-    start_prompt = "The poem: "
-    start = model.generate(start_prompt, num_hypos=3, temperature=0.9)
-    lines_count = [s.count('\n') for s in start]
-    start = start[np.argmax(lines_count)]
-    return start
+class TTMModelGenerator:
+    def __init__(self, token: str, model_name: str) -> None:
+        ttm.set_api_key(token)
+        self.model = ttm.TuneTheModel.from_id(model_name)
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        generation_result = self.model.generate(prompt, **kwargs)
+        return generation_result
 
 
-def generate_full_poem(stanza_nums=4, context_len=1):
-    start = generate_start()
-    prevs = [start]
-    stanzas = [start]
+class PoemGenerator:
+    def __init__(self, token: str, start_model_id: str, cont_model_id: str, make_longer: bool) -> None:
+        self.start_model = TTMModelGenerator(token, start_model_id)
+        self.cont_model = TTMModelGenerator(token, cont_model_id)
+        self.num_hypos = 3
+        self.start_temp = 0.9
+        self.cont_temp = 0.8
+        self.min_tokens = 15
+        self.max_tokens = 190
+        self.context_len = 1
+        self.start_prompt = "The poem: "
+        self.make_longer = make_longer
 
-    for i in range(stanza_nums):
-        # print(f'Generating Part №{i + 1}...')
-        if i == 0:
-            cont = cont_model.generate(start,
-                                       num_hypos=3,
-                                       min_tokens=15,
-                                       max_tokens=190,
-                                       temperature=0.8)
-        else:
-            cont = cont_model.generate('\n'.join(prevs),
-                                       num_hypos=3,
-                                       min_tokens=15,
-                                       max_tokens=190,
-                                       temperature=0.8)
-        lines_count = [s.count('\n') for s in cont]
-        cont = cont[np.argmax(lines_count)]
-        if len(prevs) > context_len - 1:
-            prevs = prevs[1:]
-        prevs.append(cont)
-        stanzas.append(cont)
+    def generate_full(self, stanza_nums) -> str:
+        start = self.generate_start()
+        result = self.generate_continuation(start, stanza_nums)
+        return result
 
-    text = '\n\n'.join(stanzas)
-    if text[-1] not in '.!?':
-        text = ' '.join(sent_tokenize(text)[:-1])
+    def generate_start(self) -> str:
+        starts = self.start_model.generate(self.start_prompt,
+                                           num_hypos=self.num_hypos,
+                                           temperature=self.start_temp)
+        start = starts[0]
+        if self.make_longer:
+            lines_count = [s.count('\n') for s in starts]
+            start = starts[np.argmax(lines_count)]
+        return start
 
-    return text
+    def generate_continuation(self, start: str, stanza_nums: int) -> str:
+        prevs = [start]
+        stanzas = [start]
 
-poems = []
-N = 25
-for i in tqdm(range(N)):
-    poem = generate_full_poem()
-    poems.append(poem)
+        for i in range(stanza_nums):
+            conts = self.cont_model.generate('\n'.join(prevs),
+                                             num_hypos=self.num_hypos,
+                                             min_tokens=self.min_tokens,
+                                             max_tokens=self.max_tokens,
+                                             temperature=self.cont_temp)
+            cont = conts[0]
+            if self.make_longer:
+                lines_count = [s.count('\n') for s in conts]
+                cont = conts[np.argmax(lines_count)]
 
-with open('poems.txt', 'w', encoding='utf-8') as f:
-    f.write('\n###\n'.join(poems))
+            if len(prevs) > self.context_len - 1:
+                prevs = prevs[1:]
+            prevs.append(cont)
+            stanzas.append(cont)
+
+        text = '\n\n'.join(stanzas)
+        if text[-1] not in '.!?':
+            text = ' '.join(sent_tokenize(text)[:-1])
+
+        return text
 
