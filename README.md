@@ -1,17 +1,10 @@
 # What did the author mean?
 Language model generates poems and then tries to explain their meaning.
+My project for [NaNoGenMO](https://github.com/NaNoGenMo/2022) :)
 
-**Note:** I will create a pipeline later. For now, here is the working code done in a hurry to complete the project in 
-time for [NaNoGenMO](https://github.com/NaNoGenMo/2022) :)
+**[Usage Example](https://github.com/yashkens/PoetryInterpreter/blob/main/try_generation.ipynb)**  
+The notebook shows how to run poem or analysis generation separately and how to use them in a pipeline.
 
-1. **[Generate Poem](https://github.com/yashkens/PoetryInterpreter/blob/main/poem_generation.py)**  
-Model tuned on imagist and modern poems scraped from [Poem Hunter](https://www.poemhunter.com/).
-2. **[Start Analysis](https://github.com/yashkens/PoetryInterpreter/blob/main/poem_generation.py)**  
-Model tuned on poem analyzes from [Literary Devices](https://literarydevices.net/poem-analysis/).
-It's good to begin an analysis, but struggles to make it long enough.
-3. **[Finish Analysis](https://github.com/yashkens/PoetryInterpreter/blob/main/generate_analysis_end.py)**  
-GPT-J with prompt from the previous two steps. Simple heuristics make it sound a little more
-irritated and force the analysis to end logically.
-4. **[Format Output for Latex](https://github.com/yashkens/PoetryInterpreter/blob/main/generate_analysis_end.py)**  
-Make poem texts italic. Find key phrases with Rake algorithm and make them bold.
-Add new lines and new pages.
+* Poem Generation Models were tuned on imagist and modern poems scraped from [Poem Hunter](https://www.poemhunter.com/).
+* Model for poem analysis from was tuned on data from [Literary Devices](https://literarydevices.net/poem-analysis/).
+* GPT-J finishes the analysis, as the tuned model struggles to make analysis long enough.
