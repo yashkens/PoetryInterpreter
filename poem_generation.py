@@ -1,6 +1,7 @@
 import numpy as np
 import tune_the_model as ttm
 from nltk.tokenize import sent_tokenize
+from utils import cut_unfinished_sentences
 
 
 class TTMModelGenerator:
@@ -68,6 +69,7 @@ class PoemGenerator:
             start = starts[np.argmax(lines_count)]
         return start
 
+    @cut_unfinished_sentences
     def _complete_poem(self, start: str, stanza_nums: int) -> str:
         """Completes the generation of a poem. Returns a finished poem."""
         prevs = [start]
@@ -90,8 +92,6 @@ class PoemGenerator:
             stanzas.append(cont)
 
         text = '\n\n'.join(stanzas)
-        if text[-1] not in '.!?':
-            text = ' '.join(sent_tokenize(text)[:-1])
 
         return text
 

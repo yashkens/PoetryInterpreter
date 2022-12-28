@@ -1,6 +1,7 @@
 import random
 from poem_generation import TTMModelGenerator
 from transformers import GPTJForCausalLM, AutoTokenizer
+from utils import cut_unfinished_sentences
 
 
 SAD_COMMENTS = [
@@ -92,6 +93,7 @@ class GPTJAnalysisGenerator:
             text = '.'.join(text.split('.')[:-1]) + '.'
         return text
 
+    @cut_unfinished_sentences
     def generate_analysis_part(self, prev_text: str, prompt_suffix: str, max_len: int, temp: float = 0.9) -> str:
         """
         Generates one part of analysis using GPT-J given two types of prompts,
@@ -101,7 +103,7 @@ class GPTJAnalysisGenerator:
         input_ids = self._tokenizer.encode(prompt.strip(), return_tensors="pt").cuda()
         output = self._model.generate(input_ids, do_sample=True, max_length=max_len, temperature=temp)
         text = self._tokenizer.decode(output[0], skip_special_tokens=True)
-        return self._cut_leftovers(text)
+        return text
 
     def finish_analysis(self, prompt):
         """
