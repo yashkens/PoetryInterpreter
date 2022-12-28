@@ -22,6 +22,19 @@ FINISH_PROMPTS = [
 ]
 
 
+class AnalysisGenerator:
+    def __init__(self, token: str, analysis_start_model_id: str) -> None:
+        self.start_model = AnalysisStartGenerator(token, analysis_start_model_id)
+        self.cont_model = GPTJAnalysisGenerator()
+
+    def generate_analysis(self, poem: str) -> str:
+        start = self.start_model.start_analysis(poem)
+        prompt = poem + '\n\nPoem Analysis:\n' + start
+        analysis = self.cont_model.finish_analysis(prompt)
+        analysis = analysis.split('Poem Analysis:')[1].strip()
+        return analysis
+
+
 class AnalysisStartGenerator(TTMModelGenerator):
     def __init__(self, token: str, model_id: str) -> None:
         super(AnalysisStartGenerator, self).__init__(token, model_id)
@@ -29,7 +42,7 @@ class AnalysisStartGenerator(TTMModelGenerator):
         self.min_tokens = 50
         self.max_tokens = 190
 
-    def analyze_poem(self, poem) -> str:
+    def start_analysis(self, poem: str) -> str:
         analysis = super().generate(poem,
                                     temperature=self.temp,
                                     min_tokens=self.min_tokens,
@@ -39,6 +52,7 @@ class AnalysisStartGenerator(TTMModelGenerator):
 
 class GPTJAnalysisGenerator:
     def __init__(self) -> None:
+        print("Loading GPT-J...")
         self.tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
         self.model = GPTJForCausalLM.from_pretrained("EleutherAI/gpt-j-6B")
         self.model.parallelize()
@@ -46,17 +60,17 @@ class GPTJAnalysisGenerator:
         self.start_temp = 0.9
         self.cont_temp = 0.8
 
-    def cut_leftovers(self, text):
+    def _cut_leftovers(self, text: str) -> str:
         if text[-1] not in '.!?':
             text = '.'.join(text.split('.')[:-1]) + '.'
         return text
 
-    def generate_analysis_part(self, prev_text, prompt_suffix, max_len, temp=0.9) -> str:
+    def generate_analysis_part(self, prev_text: str, prompt_suffix: str, max_len: int, temp: float = 0.9) -> str:
         prompt = prev_text + ' ' + prompt_suffix
         input_ids = self.tokenizer.encode(prompt.strip(), return_tensors="pt").cuda()
         output = self.model.generate(input_ids, do_sample=True, max_length=max_len, temperature=temp)
         text = self.tokenizer.decode(output[0], skip_special_tokens=True)
-        return self.cut_leftovers(text)
+        return self._cut_leftovers(text)
 
     def finish_analysis(self, prompt):
         length = len(prompt.split()) + 100

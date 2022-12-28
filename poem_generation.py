@@ -14,7 +14,7 @@ class TTMModelGenerator:
 
 
 class PoemGenerator:
-    def __init__(self, token: str, start_model_id: str, cont_model_id: str, make_longer: bool) -> None:
+    def __init__(self, token: str, start_model_id: str, cont_model_id: str, make_longer: bool = True) -> None:
         self.start_model = TTMModelGenerator(token, start_model_id)
         self.cont_model = TTMModelGenerator(token, cont_model_id)
         self.num_hypos = 3
@@ -26,12 +26,12 @@ class PoemGenerator:
         self.start_prompt = "The poem: "
         self.make_longer = make_longer
 
-    def generate_full(self, stanza_nums) -> str:
-        start = self.generate_start()
-        result = self.generate_continuation(start, stanza_nums)
+    def generate_poem(self, stanza_nums: int = 4) -> str:
+        start = self._start_poem()
+        result = self._complete_poem(start, stanza_nums)
         return result
 
-    def generate_start(self) -> str:
+    def _start_poem(self) -> str:
         starts = self.start_model.generate(self.start_prompt,
                                            num_hypos=self.num_hypos,
                                            temperature=self.start_temp)
@@ -41,7 +41,7 @@ class PoemGenerator:
             start = starts[np.argmax(lines_count)]
         return start
 
-    def generate_continuation(self, start: str, stanza_nums: int) -> str:
+    def _complete_poem(self, start: str, stanza_nums: int) -> str:
         prevs = [start]
         stanzas = [start]
 
