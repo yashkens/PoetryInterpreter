@@ -1,7 +1,11 @@
 import random
 from poem_generation import TTMModelGenerator
 from transformers import GPTJForCausalLM, AutoTokenizer
-from utils import cut_unfinished_sentences
+from utils import cut_unfinished_sentences, log_generative_funcs
+import logging
+
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logger = logging.getLogger()
 
 
 SAD_COMMENTS = [
@@ -39,6 +43,7 @@ class AnalysisGenerator:
         self._start_model = AnalysisStartGenerator(token, analysis_start_model_id)
         self._cont_model = GPTJAnalysisGenerator()
 
+    @log_generative_funcs
     def generate_analysis(self, poem: str) -> str:
         """Generates one full analysis for a given poem."""
         start = self._start_model.start_analysis(poem)
@@ -67,6 +72,7 @@ class AnalysisStartGenerator(TTMModelGenerator):
 
     def start_analysis(self, poem: str) -> str:
         """Generates a beginning of an analysis for a given poem."""
+        logger.info("Starting analysis...")
         analysis = super().generate(poem,
                                     temperature=self._temp,
                                     min_tokens=self._min_tokens,
@@ -80,18 +86,13 @@ class GPTJAnalysisGenerator:
     given a poem and analysis start as a prompt.
     """
     def __init__(self) -> None:
-        print("Loading GPT-J...")
+        logger.info("Loading GPT-J...")
         self._tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
         self._model = GPTJForCausalLM.from_pretrained("EleutherAI/gpt-j-6B")
         self._model.parallelize()
-        print("GPT-J is loaded!")
+        logger.info("GPT-J is loaded!")
         self._start_temp = 0.9
         self._cont_temp = 0.8
-
-    def _cut_leftovers(self, text: str) -> str:
-        if text[-1] not in '.!?':
-            text = '.'.join(text.split('.')[:-1]) + '.'
-        return text
 
     @cut_unfinished_sentences
     def generate_analysis_part(self, prev_text: str, prompt_suffix: str, max_len: int, temp: float = 0.9) -> str:
@@ -110,6 +111,7 @@ class GPTJAnalysisGenerator:
         Generated a continuation of analysis given a poem and a start of analysis.
         Returns full analysis including the start part.
         """
+        logger.info("Finishing analysis...")
         length = len(prompt.split()) + 100
 
         # analysis continuation

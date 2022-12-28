@@ -1,7 +1,10 @@
 import numpy as np
 import tune_the_model as ttm
-from nltk.tokenize import sent_tokenize
-from utils import cut_unfinished_sentences
+from utils import cut_unfinished_sentences, log_generative_funcs
+import logging
+
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logger = logging.getLogger()
 
 
 class TTMModelGenerator:
@@ -52,14 +55,16 @@ class PoemGenerator:
         self._start_prompt = "The poem: "
         self._make_longer = make_longer
 
+    @log_generative_funcs
     def generate_poem(self, stanza_nums: int = 4) -> str:
         """Generates a random poem with a given number of stanzas."""
         start = self._start_poem()
-        result = self._complete_poem(start, stanza_nums)
+        result = self._complete_poem(start, stanza_nums-1)
         return result
 
     def _start_poem(self) -> str:
         """Starts generation of a poem."""
+        logger.info("Generating stanza №1...")
         starts = self._start_model.generate(self._start_prompt,
                                             num_hypos=self._num_hypos,
                                             temperature=self._start_temp)
@@ -76,6 +81,7 @@ class PoemGenerator:
         stanzas = [start]
 
         for i in range(stanza_nums):
+            logger.info(f"Generating stanza №{i+2}...")
             conts = self._cont_model.generate('\n'.join(prevs),
                                               num_hypos=self._num_hypos,
                                               min_tokens=self._min_tokens,
